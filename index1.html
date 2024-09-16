@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Periféricos TI</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <img src="logo.png" alt="Logo">
+        </div>
+        <h1>Controle de Periféricos TI</h1>
+
+        <div class="tabs">
+            <div class="tab active" data-tab="add">Adicionar Periférico</div>
+            <div class="tab" data-tab="search">Pesquisar Periférico</div>
+        </div>
+
+        <div class="tab-content active" id="add">
+            <div class="form-section">
+                <h2>Adicionar Periférico</h2>
+                <form id="addForm">
+                    <label for="usuario">Usuário:</label>
+                    <input type="text" id="usuario" required>
+                    <label for="nome">Periférico:</label>
+                    <input type="text" id="nome" required>
+                    <label for="data">Data de entrega:</label>
+                    <input type="date" id="data" required>
+                    <button type="submit">Adicionar Periférico</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="tab-content" id="search">
+            <div class="search-bar">
+                <input type="search" id="searchUserInput" placeholder="Pesquisar por nome do usuário...">
+                <button id="searchBtn">🔍</button>
+            </div>
+            <div class="search-section">
+                <h2>Resultados da Pesquisa</h2>
+                <table id="searchResultsTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Usuário</th>
+                            <th>Periférico</th>
+                            <th>Data de Entrega</th>
+                            <th>Tempo de Uso</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Resultados serão inseridos aqui -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const addForm = document.getElementById('addForm');
+            const searchResultsTable = document.getElementById('searchResultsTable').getElementsByTagName('tbody')[0];
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+            const searchUserInput = document.getElementById('searchUserInput');
+            const searchBtn = document.getElementById('searchBtn');
+
+            function showTab(tabId) {
+                tabs.forEach(tab => tab.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+
+                document.querySelector(`.tab[data-tab="${tabId}"]`).classList.add('active');
+                document.getElementById(tabId).classList.add('active');
+            }
+
+            function loadPerifericos() {
+                searchResultsTable.innerHTML = ''; 
+
+                let perifericos = JSON.parse(localStorage.getItem('perifericos')) || [];
+                perifericos.forEach((periferico, index) => {
+                    let tr = document.createElement('tr');
+                    let idTd = document.createElement('td');
+                    let usuarioTd = document.createElement('td');
+                    let nomeTd = document.createElement('td');
+                    let dataTd = document.createElement('td');
+                    let tempoUsoTd = document.createElement('td');
+                    let acoesTd = document.createElement('td');
+
+                    idTd.textContent = index + 1;
+                    usuarioTd.textContent = periferico.usuario;
+                    nomeTd.textContent = periferico.nome;
+                    dataTd.textContent = periferico.data_recebimento;
+
+                    let dataRecebimento = new Date(periferico.data_recebimento);
+                    let dataAtual = new Date();
+
+                    let anos = dataAtual.getFullYear() - dataRecebimento.getFullYear();
+                    let meses = dataAtual.getMonth() - dataRecebimento.getMonth();
+                    let dias = dataAtual.getDate() - dataRecebimento.getDate();
+
+                    if (dias < 0) {
+                        meses--;
+                        dias += new Date(dataAtual.getFullYear(), dataAtual.getMonth(), 0).getDate();
+                    }
+
+                    if (meses < 0) {
+                        anos--;
+                        meses += 12;
+                    }
+
+                    tempoUsoTd.textContent = `${anos} anos, ${meses} meses e ${dias} dias`;
+
+                    let removeBtn = document.createElement('button');
+                    removeBtn.textContent = 'Remover';
+                    removeBtn.className = 'remove-btn';
+                    removeBtn.onclick = () => removePeriferico(index);
+
+                    acoesTd.appendChild(removeBtn);
+
+                    tr.appendChild(idTd);
+                    tr.appendChild(usuarioTd);
+                    tr.appendChild(nomeTd);
+                    tr.appendChild(dataTd);
+                    tr.appendChild(tempoUsoTd);
+                    tr.appendChild(acoesTd);
+
+                    searchResultsTable.appendChild(tr);
+                });
+            }
+
+            function addPeriferico(event) {
+                event.preventDefault();
+
+                let usuario = document.getElementById('usuario').value;
+                let nome = document.getElementById('nome').value;
+                let data = document.getElementById('data').value;
+
+                if (usuario && nome && data) {
+                    let perifericos = JSON.parse(localStorage.getItem('perifericos')) || [];
+                    perifericos.push({ usuario: usuario, nome: nome, data_recebimento: data });
+                    localStorage.setItem('perifericos', JSON.stringify(perifericos));
+
+                    document.getElementById('usuario').value = '';
+                    document.getElementById('nome').value = '';
+                    document.getElementById('data').value = '';
+
+                    loadPerifericos();
+                }
+            }
+
+            function removePeriferico(index) {
+                let perifericos = JSON.parse(localStorage.getItem('perifericos')) || [];
+                perifericos.splice(index, 1);
+                localStorage.setItem('perifericos', JSON.stringify(perifericos));
+                loadPerifericos();
+            }
+
+            function searchPerifericos() {
+                let searchUserTerm = searchUserInput.value.toLowerCase();
+                let perifericos = JSON.parse(localStorage.getItem('perifericos')) || [];
+
+                searchResultsTable.innerHTML = ''; 
+
+                perifericos.forEach((periferico, index) => {
+                    if (periferico.usuario.toLowerCase().includes(searchUserTerm)) {
+                        let tr = document.createElement('tr');
+                        let idTd = document.createElement('td');
+                        let usuarioTd = document.createElement('td');
+                        let nomeTd = document.createElement('td');
+                        let dataTd = document.createElement('td');
+                        let tempoUsoTd = document.createElement('td');
+                        let acoesTd = document.createElement('td');
+
+                        idTd.textContent = index + 1;
+                        usuarioTd.textContent = periferico.usuario;
+                        nomeTd.textContent = periferico.nome;
+                        dataTd.textContent = periferico.data_recebimento;
+
+                        let dataRecebimento = new Date(periferico.data_recebimento);
+                        let dataAtual = new Date();
+
+                        let anos = dataAtual.getFullYear() - dataRecebimento.getFullYear();
+                        let meses = dataAtual.getMonth() - dataRecebimento.getMonth();
+                        let dias = dataAtual.getDate() - dataRecebimento.getDate();
+
+                        if (dias < 0) {
+                            meses--;
+                            dias += new Date(dataAtual.getFullYear(), dataAtual.getMonth(), 0).getDate();
+                        }
+
+                        if (meses < 0) {
+                            anos--;
+                            meses += 12;
+                        }
+
+                        tempoUsoTd.textContent = `${anos} anos, ${meses} meses e ${dias} dias`;
+
+                        let removeBtn = document.createElement('button');
+                        removeBtn.textContent = 'Remover';
+                        removeBtn.className = 'remove-btn';
+                        removeBtn.onclick = () => removePeriferico(index);
+
+                        acoesTd.appendChild(removeBtn);
+
+                        tr.appendChild(idTd);
+                        tr.appendChild(usuarioTd);
+                        tr.appendChild(nomeTd);
+                        tr.appendChild(dataTd);
+                        tr.appendChild(tempoUsoTd);
+                        tr.appendChild(acoesTd);
+
+                        searchResultsTable.appendChild(tr);
+                    }
+                });
+            }
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => showTab(tab.getAttribute('data-tab')));
+            });
+
+            addForm.addEventListener('submit', addPeriferico);
+            searchBtn.addEventListener('click', searchPerifericos);
+
+            loadPerifericos();
+        });
+    </script>
+</body>
+</html>
